@@ -10,7 +10,7 @@ from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models import Message, NewPassword, Token, UserPublic
+from app.models import Message, NewPassword, Token, UserPublic, UserRegister
 from app.utils import (
     generate_password_reset_token,
     generate_reset_password_email,
@@ -41,6 +41,35 @@ def login_access_token(
             user.id, expires_delta=access_token_expires
         )
     )
+
+
+@router.post("/register", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+    """
+    Register new user
+    """
+    user = crud.get_user_by_email(session=session, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system.",
+        )
+    
+    user_create = crud.UserCreate(
+        email=user_in.email,
+        password=user_in.password,
+        full_name=user_in.full_name,
+    )
+    user = crud.create_user(session=session, user_create=user_create)
+    return user
+
+
+@router.post("/logout")
+def logout_user(current_user: CurrentUser) -> Message:
+    """
+    Logout user (client should discard the token)
+    """
+    return Message(message="Successfully logged out")
 
 
 @router.post("/login/test-token", response_model=UserPublic)

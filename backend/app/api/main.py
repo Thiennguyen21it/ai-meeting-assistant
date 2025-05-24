@@ -1,26 +1,39 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
-    items, 
     login, 
     users, 
-    utils, 
     meetings, 
-    recordings, 
-    transcripts,
-    summaries
+    transcriptions,
+    ai_features
 )
 
 api_router = APIRouter()
-api_router.include_router(login.router, tags=["login"])
-api_router.include_router(users.router, prefix="/users", tags=["users"])
-api_router.include_router(utils.router, prefix="/utils", tags=["utils"])
-# api_router.include_router(items.router, prefix="/items", tags=["items"])
-# api_router.include_router(chatbot.router, prefix="/chatbot", tags=["chatbot"])
-# api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 
-# Add new meeting recording system routes
+# Authentication routes
+api_router.include_router(login.router, prefix="/auth", tags=["auth"])
+api_router.include_router(login.router, tags=["login"])  # Keep legacy login for compatibility
+
+# User management routes
+api_router.include_router(users.router, prefix="/users", tags=["users"])
+
+# Core meeting system routes
 api_router.include_router(meetings.router, prefix="/meetings", tags=["meetings"])
-api_router.include_router(recordings.router, prefix="/recordings", tags=["recordings"])
-api_router.include_router(transcripts.router, prefix="/transcripts", tags=["transcripts"])
-api_router.include_router(summaries.router, prefix="/summaries", tags=["summaries"])
+
+# Real-time transcription routes (aligned with README API)
+api_router.include_router(transcriptions.router, prefix="/meetings", tags=["transcriptions"])
+
+# AI features routes (summarization, action items, search)
+api_router.include_router(ai_features.router, prefix="/meetings", tags=["ai-features"])
+
+# Health check endpoint
+@api_router.get("/health")
+async def health_check():
+    """
+    Health check endpoint for the AI Meeting Assistant API
+    """
+    return {
+        "status": "healthy",
+        "service": "AI Meeting Assistant",
+        "version": "1.0.0"
+    }

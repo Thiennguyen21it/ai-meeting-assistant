@@ -46,7 +46,6 @@ class UpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     hashed_password: str
-    items: List["Item"] = Relationship(back_populates="owner", sa_relationship_kwargs={"cascade": "all, delete"})
     meetings: List["Meeting"] = Relationship(back_populates="owner", sa_relationship_kwargs={"cascade": "all, delete"})
 
 # Properties to return via API, id is always required
@@ -56,41 +55,6 @@ class UserPublic(UserBase):
 
 class UsersPublic(SQLModel):
     data: List[UserPublic]
-    count: int
-
-
-# Shared properties
-class ItemBase(SQLModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
-
-
-# Properties to receive on item creation
-class ItemCreate(ItemBase):
-    pass
-
-
-# Properties to receive on item update
-class ItemUpdate(ItemBase):
-    title: str | None = Field(default=None, min_length=1, max_length=255)  # type: ignore
-
-
-# Database model, database table inferred from class name
-class Item(ItemBase, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    title: str = Field(max_length=255)
-    owner_id: UUID = Field(foreign_key="user.id", nullable=False)
-    owner: User = Relationship(back_populates="items")
-
-
-# Properties to return via API, id is always required
-class ItemPublic(ItemBase):
-    id: UUID
-    owner_id: UUID
-
-
-class ItemsPublic(SQLModel):
-    data: List[ItemPublic]
     count: int
 
 
@@ -155,6 +119,7 @@ class Meeting(SQLModel, table=True):
     # Relationships
     owner: User = Relationship(back_populates="meetings")
     recordings: List["Recording"] = Relationship(back_populates="meeting", sa_relationship_kwargs={"cascade": "all, delete"})
+    action_items: List["ActionItem"] = Relationship(back_populates="meeting", sa_relationship_kwargs={"cascade": "all, delete"})
 
 
 class RecordingStatus(str, Enum):
@@ -300,5 +265,54 @@ class SummaryPublic(SQLModel):
 
 class SummariesPublic(SQLModel):
     data: List[SummaryPublic]
+    count: int
+
+
+# Action Items Models
+class ActionItemStatus(str, Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+
+
+class ActionItemBase(SQLModel):
+    title: str = Field(max_length=255)
+    description: Optional[str] = None
+    assignee: Optional[str] = Field(default=None, max_length=255)
+    due_date: Optional[datetime] = None
+    status: ActionItemStatus = ActionItemStatus.PENDING
+
+
+class ActionItemCreate(ActionItemBase):
+    meeting_id: UUID
+
+
+class ActionItemUpdate(SQLModel):
+    title: Optional[str] = Field(default=None, max_length=255)
+    description: Optional[str] = None
+    assignee: Optional[str] = Field(default=None, max_length=255)
+    due_date: Optional[datetime] = None
+    status: Optional[ActionItemStatus] = None
+
+
+class ActionItem(ActionItemBase, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    meeting_id: UUID = Field(foreign_key="meeting.id")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    # Relationships
+    meeting: Optional["Meeting"] = Relationship(back_populates="action_items")
+
+
+class ActionItemPublic(ActionItemBase):
+    id: UUID
+    meeting_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ActionItemsPublic(SQLModel):
+    data: List[ActionItemPublic]
     count: int
 
