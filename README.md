@@ -73,7 +73,7 @@ Frontend (Next.js) ↔ Backend API (FastAPI) ↔ Database (PostgreSQL)
 ### Clone Repository
 
 ```bash
-git clone <repository-url> && cd project_dacn3
+git clone <repository-url> && cd ai-meeting-assistant
 ```
 
 ### Backend Setup
